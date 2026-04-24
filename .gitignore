@@ -1,0 +1,16 @@
+# Runtime volume populated by docker compose up (WZ files, jar, logs, scripts)
+# Too large for git (~700MB); PQ script customizations tracked via patch files if needed
+beidou-server-nightly/
+beidou-server-release/
+
+# Database files
+docker-db-data/
+
+# Tool state
+.omc/
+
+# Backups / build artifacts
+*.tgz
+*.jar
+*.jar.orig
+*.bak

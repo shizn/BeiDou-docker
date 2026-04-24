@@ -25,9 +25,10 @@ services:
       - --mybatis-flex.datasource.mysql.url=jdbc:mysql://beidou-db:3306/beidou?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
       - --mybatis-flex.datasource.mysql.username=root
       - --mybatis-flex.datasource.mysql.password=root
-      - --gms.service.wan-host=127.0.0.1
-      - --gms.service.lan-host=127.0.0.1
+      - --gms.service.wan-host=192.168.68.79
+      - --gms.service.lan-host=192.168.68.79
       - --gms.service.localhost=127.0.0.1
+      - --app.vue=http://192.168.68.79:8686
       #  如果前端访问失败，可以尝试修改↓
       # - --app.vue=<前端url>
       #  生产环境请自行生成密钥,并关闭 swagger
