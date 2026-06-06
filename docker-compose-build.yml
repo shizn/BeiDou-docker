@@ -9,6 +9,7 @@
 services:
   beidou-server:
     container_name: beidou-server
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile-server-fork
@@ -47,6 +48,7 @@ services:
 
   beidou-ui:
     container_name: beidou-ui
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile-ui-fork
@@ -62,6 +64,7 @@ services:
 
   beidou-db:
     container_name: beidou-db
+    restart: unless-stopped
     image: mysql:8.4.0
     environment:
       MYSQL_ROOT_PASSWORD: "root"
