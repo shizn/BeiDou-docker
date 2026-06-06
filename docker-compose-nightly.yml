@@ -37,7 +37,7 @@ services:
       # - --springdoc.api-docs.enabled=true
       # - --springdoc.swagger-ui.enabled=true
     healthcheck:
-      test: ["CMD", "sh", "-c", "netstat -tunlp | grep 0.0.0.0:8484 || exit 1"]
+      test: ["CMD-SHELL", "netstat -tln 2>/dev/null | grep -q ':8484' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10

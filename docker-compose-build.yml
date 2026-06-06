@@ -35,7 +35,7 @@ services:
       - --gms.service.localhost=127.0.0.1
       - "--app.vue=http://${GMS_HOST}:8686"
     healthcheck:
-      test: ["CMD", "sh", "-c", "netstat -tunlp | grep 0.0.0.0:8484 || exit 1"]
+      test: ["CMD-SHELL", "netstat -tln 2>/dev/null | grep -q ':8484' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
