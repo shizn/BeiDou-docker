@@ -1,0 +1,42 @@
+# 从 shizn fork 构建「自定义服务端镜像」（含单机补丁 + 上游 1.11）
+# 与官方 Dockerfile-server 等价，只是 clone 你的 fork 而非上游。
+# 构建上下文 = 本目录（BeiDou-docker），需要 entrypoint-nightly.sh
+#############################
+# 取源码（你的 fork）       #
+#############################
+FROM alpine AS codestage
+RUN apk add --no-cache git
+WORKDIR /opt/repository
+ARG SERVER_REPO=https://github.com/shizn/BeiDou-Server
+ARG SERVER_REF=master
+# 改变 CACHEBUST 可强制重新 clone（fork 更新后重建用）：--build-arg CACHEBUST=$(date +%s)
+ARG CACHEBUST=1
+RUN git clone --depth 1 --branch ${SERVER_REF} ${SERVER_REPO}
+
+#############################
+# Maven 编译 BeiDou.jar     #
+#############################
+FROM maven:3.9.6-amazoncorretto-21 AS builder
+WORKDIR /opt/build
+COPY --from=codestage /opt/repository/BeiDou-Server/pom.xml ./pom.xml
+COPY --from=codestage /opt/repository/BeiDou-Server/gms-server/src ./gms-server/src
+COPY --from=codestage /opt/repository/BeiDou-Server/gms-server/pom.xml ./gms-server/pom.xml
+RUN mvn dependency:resolve
+RUN mvn clean package -U
+RUN mkdir result && mv ./gms-server/target/BeiDou.jar ./result/BeiDou.jar
+COPY --from=codestage /opt/repository/BeiDou-Server/gms-server/src/main/resources/application.yml ./result/application.yml
+COPY --from=codestage /opt/repository/BeiDou-Server/gms-server/wz ./result/wz
+COPY --from=codestage /opt/repository/BeiDou-Server/gms-server/wz-zh-CN ./result/wz-zh-CN
+COPY --from=codestage /opt/repository/BeiDou-Server/gms-server/scripts ./result/scripts
+COPY --from=codestage /opt/repository/BeiDou-Server/gms-server/scripts-zh-CN ./result/scripts-zh-CN
+
+#############################
+# 运行镜像                   #
+#############################
+FROM eclipse-temurin:21-jre-alpine
+COPY --from=builder /opt/build/result /opt/server_backup
+COPY entrypoint-nightly.sh /
+RUN chmod +x /entrypoint-nightly.sh
+VOLUME /opt/server
+EXPOSE 8686 8484 7575 7576 7577
+ENTRYPOINT ["/entrypoint-nightly.sh"]

@@ -1,0 +1,81 @@
+# 自构建栈：从你的 shizn fork 直接构建自定义服务端 + UI 镜像（含单机补丁 + 1.11）。
+# 目标机器只需安装 Docker（Colima 或 Docker Desktop 均可），无需 JDK/Maven/Node。
+#
+# 用法（在本目录内）：
+#   cp .env.example .env   # 设置 GMS_HOST（本机 Tailscale 100.x 或局域网 IP）
+#   docker compose -f docker-compose-build.yml up -d --build
+# fork 更新后重建（绕过 git clone 缓存）：
+#   CACHEBUST=$(date +%s) docker compose -f docker-compose-build.yml build
+services:
+  beidou-server:
+    container_name: beidou-server
+    build:
+      context: .
+      dockerfile: Dockerfile-server-fork
+      args:
+        CACHEBUST: ${CACHEBUST:-1}
+    image: beidou-server:custom
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      # Login server
+      - "8484:8484"
+      # Channels
+      - "7575-7577:7575-7577"
+    volumes:
+      # 运行态（首次启动由镜像内 backup 填充：jar/wz/scripts/logs）
+      - ./beidou-server-nightly:/opt/server
+    command:
+      - --mybatis-flex.datasource.mysql.url=jdbc:mysql://beidou-db:3306/beidou?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+      - --mybatis-flex.datasource.mysql.username=root
+      - --mybatis-flex.datasource.mysql.password=root
+      # 客户端路由地址：从 .env 的 GMS_HOST 读取（Tailscale 100.x 或 LAN IP）。见 .env.example
+      - "--gms.service.wan-host=${GMS_HOST:?set GMS_HOST in .env first}"
+      - "--gms.service.lan-host=${GMS_HOST}"
+      - --gms.service.localhost=127.0.0.1
+      - "--app.vue=http://${GMS_HOST}:8686"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "netstat -tunlp | grep 0.0.0.0:8484 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      beidou-db:
+        condition: service_healthy
+    networks:
+      - beidou-network
+
+  beidou-ui:
+    container_name: beidou-ui
+    build:
+      context: .
+      dockerfile: Dockerfile-ui-fork
+      args:
+        CACHEBUST: ${CACHEBUST:-1}
+    image: beidou-ui:custom
+    ports:
+      - "8686:8686"
+    depends_on:
+      - beidou-server
+    networks:
+      - beidou-network
+
+  beidou-db:
+    container_name: beidou-db
+    image: mysql:8.4.0
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+    volumes:
+      - ./docker-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - beidou-network
+
+networks:
+  beidou-network:
+    driver: bridge
