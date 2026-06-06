@@ -14,3 +14,6 @@ docker-db-data/
 *.jar
 *.jar.orig
 *.bak
+
+# Machine-specific runtime config (template: .env.example)
+.env

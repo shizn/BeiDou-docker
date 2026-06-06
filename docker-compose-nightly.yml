@@ -25,10 +25,11 @@ services:
       - --mybatis-flex.datasource.mysql.url=jdbc:mysql://beidou-db:3306/beidou?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
       - --mybatis-flex.datasource.mysql.username=root
       - --mybatis-flex.datasource.mysql.password=root
-      - --gms.service.wan-host=192.168.68.79
-      - --gms.service.lan-host=192.168.68.79
+      # 客户端路由地址：从 .env 的 GMS_HOST 读取（局域网填 LAN IP；经 Tailscale 远程填 100.x IP）。见 .env.example
+      - "--gms.service.wan-host=${GMS_HOST:?set GMS_HOST in .env first}"
+      - "--gms.service.lan-host=${GMS_HOST}"
       - --gms.service.localhost=127.0.0.1
-      - --app.vue=http://192.168.68.79:8686
+      - "--app.vue=http://${GMS_HOST}:8686"
       #  如果前端访问失败，可以尝试修改↓
       # - --app.vue=<前端url>
       #  生产环境请自行生成密钥,并关闭 swagger
@@ -54,9 +55,10 @@ services:
     # build:
     #   context: .
     #   dockerfile: Dockerfile-ui
-    # 可以挂载出来 修改端口，添加证书
-    # volumes:
-    #   - ./nginx-ui.conf:/etc/nginx/conf.d/default.conf
+    volumes:
+      - ./nginx-ui.conf:/etc/nginx/conf.d/default.conf:ro
+      # UI 构建产物（相对路径，BeiDou-Server 与本仓库同级即可跨机器复用）
+      - ../BeiDou-Server/gms-ui/dist:/usr/share/nginx/html:ro
     ports:
       # Web
       - "8686:8686"
